@@ -1,0 +1,290 @@
+import numbers.parser.*;
+
+// TOKENS //
+
+  // Simple tokens.
+  record LeftCurl   ();
+  record RiteCurl   ();
+  record LeftSquare ();
+  record RiteSquare ();
+  record Comma      ();
+  record Colon      ();
+
+  // Value tokens.
+  record True       ();
+  record False      ();
+  record Null       ();
+
+  // Complex tokens.
+  // String - already a valid construct.
+  variant Number = Int | Float;
+
+  // Token definition.
+  variant Token =
+    LeftCurl   | RiteCurl   |
+    LeftSquare | RiteSquare |
+    Comma      | Colon      |
+    True  |  False  |  Null |
+    String     | Number;
+
+// END TOKENS //
+
+// LEXER //
+
+  // Helper functions for True, False, and Null.
+  expect_true (input:String, pos:Int) {
+    return (input[pos + 0] == 't' and 
+            input[pos + 1] == 'r' and
+            input[pos + 2] == 'u' and
+            input[pos + 3] == 'e');
+  }
+  
+  expect_false (input:String, pos:Int) {
+    return (input[pos + 0] == 'f' and 
+            input[pos + 1] == 'a' and
+            input[pos + 2] == 'l' and
+            input[pos + 3] == 's' and
+            input[pos + 4] == 'e');
+  }
+
+  expect_null (input:String, pos:Int) {
+    return (input[pos + 0] == 'n' and 
+            input[pos + 1] == 'u' and
+            input[pos + 2] == 'l' and
+            input[pos + 3] == 'l');
+  }
+  
+  // Convenience function to parse entire string from beginning.
+  lex (input:String) { 
+    return lex(input, 0);  
+  }
+
+  // Actual lexer function - breaks input into one of the above listed tokens.
+  overload lex (input:String, pos:Int) {
+
+    // Our token vector.
+    var tokens = Vector[Token]();
+
+    // Keeps track of line number for errors.
+    var line_number = 0;
+
+    // Current string.
+    var str = String("");
+
+    // Run through entire string.
+    while (pos < size(input)) {
+    
+      // Switch to determine token type.
+      switch (input[pos]) {
+        
+        // Ignore whitespace.
+        case ' ': case '\t':
+          inc(pos); break;
+
+        // On newlines, increment the line number.
+        case '\n':
+          inc(line_number); inc(pos); break;
+
+        // Simple tokens.
+        case '{':
+          push(tokens, Token(LeftCurl()));   inc(pos); break;
+        case '}':
+          push(tokens, Token(RiteCurl()));   inc(pos); break;
+        case '[':
+          push(tokens, Token(LeftSquare())); inc(pos); break;
+        case ']':
+          push(tokens, Token(RiteSquare())); inc(pos); break;
+        case ',':
+          push(tokens, Token(Comma()));      inc(pos); break;
+        case ':':
+          push(tokens, Token(Colon()));      inc(pos); break;
+
+        // Value tokens.
+        case 't':
+          if (expect_true(input, pos)) {
+            push(tokens, Token(True()));
+            pos += 4;
+          } else 
+            println("FAIL");
+          break;
+
+        case 'f':
+          if (expect_false(input, pos)) {
+            push(tokens, Token(False()));
+            pos += 5;
+          } else
+            println("FAIL");
+          break;
+
+        case 'n':
+          if (expect_null(input, pos)) {
+            push(tokens, Token(Null()));
+            pos += 4;
+          } else
+            println("FAIL");
+          break;
+
+        // Complex tokens.
+        case '"':
+          clear(str);
+          inc(pos);
+          while (input[pos] != '"' or input[pos - 1] == '\\') {
+            if (pos == size(input)) 
+              println("FAIL");
+            str += input[pos];
+            inc(pos);
+          }
+          push(tokens, Token(str)); inc(pos); break;
+
+        case '-':
+        case '0': case '1': case '2': case '3': case '4':
+        case '5': case '6': case '7': case '8': case '9':
+          clear(str);
+          str += input[pos];
+          inc(pos);
+          while (input[pos] == '.' or
+                 input[pos] == '-' or
+                 input[pos] == '0' or
+                 input[pos] == '1' or
+                 input[pos] == '2' or
+                 input[pos] == '3' or
+                 input[pos] == '4' or
+                 input[pos] == '5' or
+                 input[pos] == '6' or
+                 input[pos] == '7' or
+                 input[pos] == '8' or
+                 input[pos] == '9' or
+                 input[pos] == 'e' or
+                 input[pos] == 'E' or
+                 input[pos] == '+') {
+            str += input[pos];
+            inc(pos);
+          }
+
+          if (in?(str, '.'))  {
+            push(tokens, Token(Number(parseFloat32(str))));
+          } else {
+            push(tokens, Token(Number(parseInt32(str))));
+          }
+          
+          break;  
+
+        // Default - if we're here, something is wrong with our input.
+        default:
+          break;
+      }
+
+    }
+
+    return tokens;
+  
+  }
+
+// END LEXER //
+
+// Parser - parses a token vector, returning the root JSON node.
+ 
+  variant JSONValue = 
+    String                     |
+    Number                     |
+    HashMap[String, JSONValue] |
+    Vector[JSONValue]          |
+    True                       |
+    False                      |
+    Null;
+ 
+  parse (input:Vector[Token]) {
+
+    return parseObject(reverse(input));
+
+  }
+
+  parseObject (input:Vector[Token]) {
+
+    if (size(input) < 5)
+      assert(0 == 1);
+
+    var map  = HashMap[String, JSONValue]();
+    var left = pop(input);
+    while (true) {
+      var tag  = pop(input);
+      if (not variantIs?(tag, String))
+        assert(0 == 1); 
+      var mid  = pop(input);
+      var val  = parseValue(input);
+      var end  = pop(input);
+      put(map, variantAs(tag, String), val);
+      if (not variantIs?(end, Comma))
+        break;
+    }
+
+    return map;
+
+  }
+
+  parseValue (input:Vector[Token]) {
+    var val = pop(input);
+    if      (variantIs?(val, String))
+      return JSONValue(variantAs(val, String));
+    else if (variantIs?(val, Number))
+      return JSONValue(variantAs(val, Number));
+    else if (variantIs?(val, LeftCurl)) {
+      push(input, Token(LeftCurl()));
+      return JSONValue(parseObject(input));
+    }
+    else if (variantIs?(val, LeftSquare)) {
+      push(input, Token(LeftSquare()));
+      return JSONValue(parseArray(input));
+    }
+    else if (variantIs?(val, True))
+      return JSONValue(variantAs(val, True));
+    else if (variantIs?(val, False))
+      return JSONValue(variantAs(val, False));
+    else if (variantIs?(val, Null))
+      return JSONValue(variantAs(val, Null));
+    else
+      return JSONValue(Null());
+  }
+
+  parseArray (input:Vector[Token]) {
+    var arr  = Vector[JSONValue]();
+    var left = pop(input);
+    while (true) {
+      push(arr, parseValue(input));
+      var end = pop(input);
+      if (not variantIs?(end, Comma))
+        break;
+    }
+    return arr;
+  }
+
+main () {
+  
+  var input = "{
+     \"firstName\": \"John\",
+     \"lastName\": \"Smith\",
+     \"age\": 25,
+     \"address\": 
+     {
+         \"streetAddress\": \"21 2nd Street\",
+         \"city\": \"New York\",
+         \"state\": \"NY\",
+         \"postalCode\": \"10021\"
+     },
+     \"phoneNumber\": 
+     [
+         {
+           \"type\": \"home\",
+           \"number\": \"212 555-1234\"
+         },
+         {
+           \"type\": \"fax\",
+           \"number\": \"646 555-4567\"
+         }
+     ]
+ }
+  ";
+  println(parse(lex(String(input))));
+  return 0;
+
+}
