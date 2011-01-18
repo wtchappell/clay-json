@@ -1,0 +1,9 @@
+- Add line/column number for exceptions in the lexer.
+- Create more detailed parser exceptions.
+- Rewrite parseValue using 'match' from lib-clay/variants.
+- Add write support.
+- Add pretty printing.
+- Merge into clay as library.
+- Add test suite.
+- Final inspection.
+- Submit pull request.
