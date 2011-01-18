@@ -32,7 +32,8 @@ import numbers.parser.*;
 // EXCEPTIONS //
 
 record JSONLexerException (
-  msg : StringConstant
+  lin : Int,
+  col : Int
 );
 
 record JSONParserException (
@@ -120,7 +121,7 @@ instance Exception = JSONParserException;
             push(tokens, Token(True()));
             pos += 4;
           } else 
-            throw JSONLexerException("JSON lexer error.");
+            throw JSONLexerException(line_number, pos);
           break;
 
         case 'f':
@@ -128,7 +129,7 @@ instance Exception = JSONParserException;
             push(tokens, Token(False()));
             pos += 5;
           } else
-            throw JSONLexerException("JSON lexer error.");
+            throw JSONLexerException(line_number, pos);
           break;
 
         case 'n':
@@ -136,7 +137,7 @@ instance Exception = JSONParserException;
             push(tokens, Token(Null()));
             pos += 4;
           } else
-            throw JSONLexerException("JSON lexer error.");
+            throw JSONLexerException(line_number, pos);
           break;
 
         // Complex tokens.
@@ -145,7 +146,7 @@ instance Exception = JSONParserException;
           inc(pos);
           while (input[pos] != '"' or input[pos - 1] == '\\') {
             if (pos == size(input)) 
-              throw JSONLexerException("JSON lexer error.");
+              throw JSONLexerException(line_number, pos);
             str += input[pos];
             inc(pos);
           }
@@ -186,7 +187,7 @@ instance Exception = JSONParserException;
 
         // Default - if we're here, something is wrong with our input.
         default:
-          throw JSONLexerException("JSON lexer error.");
+          throw JSONLexerException(line_number, pos);
       }
 
     }
@@ -217,14 +218,14 @@ instance Exception = JSONParserException;
   parseObject (input:Vector[Token]) {
 
     if (size(input) < 5)
-      throw JSONParserException("JSON parser error.");
+      throw JSONParserException("Valid JSON contains at least one JSON object.");
 
     var map  = HashMap[String, JSONValue]();
     var left = pop(input);
     while (true) {
       var tag  = pop(input);
       if (not variantIs?(tag, String))
-        throw JSONParserException("JSON parser error.");
+        throw JSONParserException("JSON object tags must be strings.");
       var mid  = pop(input);
       var val  = parseValue(input);
       var end  = pop(input);
@@ -258,7 +259,7 @@ instance Exception = JSONParserException;
     else if (variantIs?(val, Null))
       return JSONValue(variantAs(val, Null));
     else
-      throw JSONParserException("JSON parser error.");
+      throw JSONParserException("Unknown token type encountered.");
   }
 
   parseArray (input:Vector[Token]) {
@@ -275,7 +276,7 @@ instance Exception = JSONParserException;
 
 main () {
 
-  var input = String("{true:true\"}");
+  var input = String("{true:true}");
   println(parse(lex(String(input))));
   return 0;
 
