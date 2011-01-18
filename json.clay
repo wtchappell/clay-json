@@ -32,12 +32,12 @@ import numbers.parser.*;
 // EXCEPTIONS //
 
 record JSONLexerException (
-  lin : Int,
-  col : Int
+  line   : Int,
+  column : Int
 );
 
 record JSONParserException (
-  msg : StringConstant
+  msg    : StringConstant
 );
 
 instance Exception = JSONLexerException;
@@ -199,11 +199,13 @@ instance Exception = JSONParserException;
 // END LEXER //
 
 // Parser - parses a token vector, returning the root JSON node.
- 
+
+  alias JSONObject = HashMap[String, JSONValue];
+
   variant JSONValue = 
     String                     |
     Number                     |
-    HashMap[String, JSONValue] |
+    JSONObject                 |
     Vector[JSONValue]          |
     True                       |
     False                      |
@@ -217,9 +219,6 @@ instance Exception = JSONParserException;
 
   parseObject (input:Vector[Token]) {
 
-    if (size(input) < 5)
-      throw JSONParserException("Valid JSON contains at least one JSON object.");
-
     var map  = HashMap[String, JSONValue]();
     var left = pop(input);
     while (true) {
@@ -228,13 +227,17 @@ instance Exception = JSONParserException;
         throw JSONParserException("JSON object tags must be strings.");
       var mid  = pop(input);
       var val  = parseValue(input);
+      if (size(input) < 1)
+        throw JSONParserException("Missing right brace.");
       var end  = pop(input);
+      if (not variantIs?(end, RiteCurl))
+        throw JSONParserException("Missing right brace.");
       put(map, variantAs(tag, String), val);
       if (not variantIs?(end, Comma))
         break;
     }
 
-    return map;
+    return JSONValue(map);
 
   }
 
@@ -269,14 +272,28 @@ instance Exception = JSONParserException;
       push(arr, parseValue(input));
       var end = pop(input);
       if (not variantIs?(end, Comma))
-        break;
+        if (variantIs?(end, RiteSquare))
+          break;
+        else 
+          throw JSONParserException("Unknown token type encountered.");
     }
     return arr;
   }
 
+// END PARSER //
+
+// PRETTY PRINTER //
+
+//  overload printTo (stream, val:JSONValue) {
+//    printTo(stream, "JSON"); 
+//  }
+
+// END PRINTER //
+
 main () {
 
-  var input = String("{true:true}");
+  var input = String("{\"Bill\":[true, true}}");
+  println((lex(String(input))));
   println(parse(lex(String(input))));
   return 0;
 
