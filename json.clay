@@ -29,6 +29,21 @@ import numbers.parser.*;
 
 // END TOKENS //
 
+// EXCEPTIONS //
+
+record JSONLexerException (
+  msg : StringConstant
+);
+
+record JSONParserException (
+  msg : StringConstant
+);
+
+instance Exception = JSONLexerException;
+instance Exception = JSONParserException;
+
+// END EXCEPTIONS //
+
 // LEXER //
 
   // Helper functions for True, False, and Null.
@@ -105,7 +120,7 @@ import numbers.parser.*;
             push(tokens, Token(True()));
             pos += 4;
           } else 
-            println("FAIL");
+            throw JSONLexerException("JSON lexer error.");
           break;
 
         case 'f':
@@ -113,7 +128,7 @@ import numbers.parser.*;
             push(tokens, Token(False()));
             pos += 5;
           } else
-            println("FAIL");
+            throw JSONLexerException("JSON lexer error.");
           break;
 
         case 'n':
@@ -121,7 +136,7 @@ import numbers.parser.*;
             push(tokens, Token(Null()));
             pos += 4;
           } else
-            println("FAIL");
+            throw JSONLexerException("JSON lexer error.");
           break;
 
         // Complex tokens.
@@ -130,7 +145,7 @@ import numbers.parser.*;
           inc(pos);
           while (input[pos] != '"' or input[pos - 1] == '\\') {
             if (pos == size(input)) 
-              println("FAIL");
+              throw JSONLexerException("JSON lexer error.");
             str += input[pos];
             inc(pos);
           }
@@ -171,7 +186,7 @@ import numbers.parser.*;
 
         // Default - if we're here, something is wrong with our input.
         default:
-          break;
+          throw JSONLexerException("JSON lexer error.");
       }
 
     }
@@ -202,14 +217,14 @@ import numbers.parser.*;
   parseObject (input:Vector[Token]) {
 
     if (size(input) < 5)
-      assert(0 == 1);
+      throw JSONParserException("JSON parser error.");
 
     var map  = HashMap[String, JSONValue]();
     var left = pop(input);
     while (true) {
       var tag  = pop(input);
       if (not variantIs?(tag, String))
-        assert(0 == 1); 
+        throw JSONParserException("JSON parser error.");
       var mid  = pop(input);
       var val  = parseValue(input);
       var end  = pop(input);
@@ -243,7 +258,7 @@ import numbers.parser.*;
     else if (variantIs?(val, Null))
       return JSONValue(variantAs(val, Null));
     else
-      return JSONValue(Null());
+      throw JSONParserException("JSON parser error.");
   }
 
   parseArray (input:Vector[Token]) {
@@ -259,31 +274,8 @@ import numbers.parser.*;
   }
 
 main () {
-  
-  var input = "{
-     \"firstName\": \"John\",
-     \"lastName\": \"Smith\",
-     \"age\": 25,
-     \"address\": 
-     {
-         \"streetAddress\": \"21 2nd Street\",
-         \"city\": \"New York\",
-         \"state\": \"NY\",
-         \"postalCode\": \"10021\"
-     },
-     \"phoneNumber\": 
-     [
-         {
-           \"type\": \"home\",
-           \"number\": \"212 555-1234\"
-         },
-         {
-           \"type\": \"fax\",
-           \"number\": \"646 555-4567\"
-         }
-     ]
- }
-  ";
+
+  var input = String("{true:true\"}");
   println(parse(lex(String(input))));
   return 0;
 
