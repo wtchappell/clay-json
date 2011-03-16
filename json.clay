@@ -282,19 +282,60 @@ instance Exception = JSONParserException;
 
 // END PARSER //
 
-// PRETTY PRINTER //
+// MODERATELY PRETTY PRINTER //
 
-//  overload printTo (stream, val:JSONValue) {
-//    printTo(stream, "JSON"); 
-//  }
+overload printTo (stream, val:JSONValue) {
+  printTo(stream, dump(val));
+}
+
+dump(x: JSONValue) {
+  if (variantIs?(x, String)) return dumpString(variantAs(x, String));
+  if (variantIs?(x, Number)) return dumpNumber(variantAs(x, Number));
+  if (variantIs?(x, JSONObject)) return dumpObject(variantAs(x, JSONObject));
+  if (variantIs?(x, Vector[JSONValue])) return dumpVector(variantAs(x, Vector[JSONValue]));
+  if (variantIs?(x, True)) return dumpTrue(variantAs(x, True));
+  if (variantIs?(x, False)) return dumpFalse(variantAs(x, False));
+  if (variantIs?(x, Null)) return dumpNull(variantAs(x, Null));
+  return String("");
+}
+
+dumpString(x: String) { var out = String(); printReprTo(out, x); return out; }
+dumpNumber(x: Number) { var out = String(); printReprTo(out, x); return out; }
+dumpTrue(x: True) { return String("true"); }
+dumpFalse(x: False) { return String("false"); }
+dumpNull(x: Null) { return String("null"); }
+
+dumpObject(x: JSONObject) {
+  var out = String();
+  push(out, '{');
+  var processed = 0;
+  for (k,v in items(x)) {
+    if (processed > 0) push(out, ", ");
+    printReprTo(out, k);
+    push(out, ':');
+    push(out, dump(v));
+    processed += 1;
+  }
+  push(out, '}');
+  return out;
+}
+
+dumpVector(x: Vector[JSONValue]) {
+  var out = String();
+  push(out, '[');
+  for (num,v in enumerated(x)) {
+    if (num>0) { push(out, ", "); }
+    push(out, dump(v));
+  }
+  push(out, ']');
+  return out;
+}
 
 // END PRINTER //
 
 main () {
-
-  var input = String("{\"Bill\":[true, true}}");
-  println((lex(String(input))));
-  println(parse(lex(String(input))));
+  var input = String("{\"Bill\":[true, true, {\"Fred\":32}]}");
+  var parsed = parse(lex(String(input)));
+  println(parsed);
   return 0;
-
 }
