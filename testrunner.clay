@@ -1,0 +1,10 @@
+import json.*;
+import system.(commandLine);
+import io.files;
+
+main () {
+    var f = File(commandLine()[1]);
+    var s = readAll(f);
+
+    var x = parse(lex(s));
+}
