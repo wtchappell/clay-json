@@ -230,9 +230,12 @@ instance Exception = JSONParserException;
       if (size(input) < 1)
         throw JSONParserException("Missing right brace.");
       var end  = pop(input);
-      if (not variantIs?(end, RiteCurl))
+            
+      if ((not variantIs?(end, RiteCurl)) and (not variantIs?(end, Comma)))
         throw JSONParserException("Missing right brace.");
+      
       put(map, variantAs(tag, String), val);
+      
       if (not variantIs?(end, Comma))
         break;
     }
