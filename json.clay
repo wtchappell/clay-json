@@ -223,6 +223,10 @@ instance Exception = JSONParserException;
     var left = pop(input);
     while (true) {
       var tag  = pop(input);
+      
+      if (variantIs?(tag, RiteCurl))
+        break;
+      
       if (not variantIs?(tag, String))
         throw JSONParserException("JSON object tags must be strings.");
       var mid  = pop(input);
