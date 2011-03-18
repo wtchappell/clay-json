@@ -213,7 +213,7 @@ instance Exception = JSONParserException;
  
   parse (input:Vector[Token]) {
 
-    return parseObject(reverse(input));
+    return parseValue(reverse(input));
 
   }
 
