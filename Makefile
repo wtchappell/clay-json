@@ -13,4 +13,4 @@ clean:
 	rm -f json
 	rm -f testrunner
 
-.PHONY: clean all
+.PHONY: clean all tests
