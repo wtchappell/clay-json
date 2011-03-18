@@ -276,6 +276,9 @@ instance Exception = JSONParserException;
     var arr  = Vector[JSONValue]();
     var left = pop(input);
     while (true) {
+      if (variantIs?(back(input), RiteSquare))
+        break;
+      
       push(arr, parseValue(input));
       var end = pop(input);
       if (not variantIs?(end, Comma))
