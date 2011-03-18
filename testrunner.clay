@@ -3,8 +3,18 @@ import system.(commandLine);
 import io.files;
 
 main () {
+    print("\033[0m");
+    
     var f = File(commandLine()[1]);
     var s = readAll(f);
 
-    var x = parse(lex(s));
+    var x = dump(parse(lex(s)));
+    
+    if (x == s) {
+        println("   \033[0;32mOK!\033[0m");
+    } else {
+        println("   FAIL!");
+        println("   A: " + s);
+        println("   B: " + x);
+    }
 }
