@@ -10,7 +10,7 @@ tests: testrunner
 	find tests/ -name \*.json -print -exec ./testrunner {} \;
 
 clean:
-	rm json
-	rm testrunner
+	rm -f json
+	rm -f testrunner
 
 .PHONY: clean all
