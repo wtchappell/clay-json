@@ -213,7 +213,7 @@ instance Exception = JSONParserException;
  
   parse (input:Vector[Token]) {
 
-    return parseObject(reverse(input));
+    return parseValue(reverse(input));
 
   }
 
@@ -223,6 +223,10 @@ instance Exception = JSONParserException;
     var left = pop(input);
     while (true) {
       var tag  = pop(input);
+      
+      if (variantIs?(tag, RiteCurl))
+        break;
+      
       if (not variantIs?(tag, String))
         throw JSONParserException("JSON object tags must be strings.");
       var mid  = pop(input);
@@ -230,9 +234,12 @@ instance Exception = JSONParserException;
       if (size(input) < 1)
         throw JSONParserException("Missing right brace.");
       var end  = pop(input);
-      if (not variantIs?(end, RiteCurl))
+            
+      if ((not variantIs?(end, RiteCurl)) and (not variantIs?(end, Comma)))
         throw JSONParserException("Missing right brace.");
+      
       put(map, variantAs(tag, String), val);
+      
       if (not variantIs?(end, Comma))
         break;
     }
@@ -269,6 +276,9 @@ instance Exception = JSONParserException;
     var arr  = Vector[JSONValue]();
     var left = pop(input);
     while (true) {
+      if (variantIs?(back(input), RiteSquare))
+        break;
+      
       push(arr, parseValue(input));
       var end = pop(input);
       if (not variantIs?(end, Comma))
@@ -312,7 +322,7 @@ dumpObject(x: JSONObject) {
   for (k,v in items(x)) {
     if (processed > 0) push(out, ", ");
     printReprTo(out, k);
-    push(out, ':');
+    push(out, ": ");
     push(out, dump(v));
     processed += 1;
   }
